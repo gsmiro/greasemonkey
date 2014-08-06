@@ -7,11 +7,8 @@
 // ==/UserScript==
 
 console.log('Runnning track hacks!');
-document.onreadystatechange = function(){
-    console.log(document.readyState)
-}
 (function(document,$){
-    console.log('ini')
+    
     var _cfg = {
               'query':{
                   'post':function(path,cfg,doc,$){
@@ -22,10 +19,13 @@ document.onreadystatechange = function(){
              'roadmap':{
                  'queryParams':'',
                  'post':function(path,cfg,doc,$){
-                     $('span.first.interval > a').map(function(idx,item,arr){
-                         item.href = cfg.queryParams || item.href;
-                         return item;
-                     });
+                        if(cfg.queryParams)
+                        $('span.first.interval > a').map(function(idx,item,arr){
+                            console.log(item.href);
+                            console.log(cfg.queryParams);
+                            item.href += cfg.queryParams;
+                            return item;
+                         });
                   }        
               }
           };
@@ -46,24 +46,37 @@ document.onreadystatechange = function(){
         
     }
     
-    function readcfg(nm,ctx){
-        console.log('readcfg ' );
-        return ctx && ctx[nm] || _cfg;
+    function merge(from,to){
+        to = to && merge(to) || {};
+        if(from){
+          for(var p in from){
+            if(!(p in to)){
+              to[p] = from[p];
+            }else if(typeof from[p] === 'object') {
+              to[p] = merge(from[p],to[p]);
+            }
+          }
+          return to;
+        }
+        return to || from || {};
+    }
+
+
+    
+    function readcfg(nm,db,ctx){
+        var cfg = merge(merge(_cfg,db.val(nm)),ctx && ctx[nm]);
+        console.log(cfg);
+        return cfg;
     }
     
     function ready(path,procs,document,$){
-        console.log('ready');
         var pttrn = path.match('\\w+$');
-        console.log(pttrn);
         pttrn = pttrn && pttrn.length && pttrn[0];
-        console.log(procs[pttrn].post)
         if(pttrn && procs[pttrn].post){
             console.log('Triggered '+pttrn + ' for ' +path);
             return procs[pttrn].post(path,procs[pttrn],document,$);
         }
     };
-    
-    console.log(Storage)
     
     Storage.prototype._fs = {};
     Storage.prototype.val = function(k,v){
@@ -90,7 +103,7 @@ document.onreadystatechange = function(){
     }
     document.onreadystatechange = function(state){
          if(document.readyState === 'complete'){
-           var cfg = readcfg('tracclientcfg',this);
+           var cfg = readcfg('tracclientcfg',sessionStorage,this);
            ready(location.pathname,cfg,document,jQuery);
          }
     }
